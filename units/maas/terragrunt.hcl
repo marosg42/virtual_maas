@@ -19,6 +19,7 @@ dependency "virtualnodes" {
     maas_api_key               = "ConsumerSecret:TokenKey:TokenSecret"
     maas_controller_ip_address = "1.2.3.4"
     nodes = []
+    juju_nodes = []
   }
   mock_outputs_allowed_terraform_commands = ["plan", "validate"]
 }
@@ -39,6 +40,7 @@ inputs = merge(
     maas_api_key = dependency.virtualnodes.outputs.maas_api_key
     maas_controller_ip_address = dependency.virtualnodes.outputs.maas_controller_ip_address
     nodes = dependency.virtualnodes.outputs.nodes
+    juju_nodes = dependency.virtualnodes.outputs.juju_nodes
     # TODO(freyes): make `172.16.1.1` dynamic, it's the gateway of the generic_net
     # network created by libvirt, so this should be an output of the
     # virtualnodes' unit.

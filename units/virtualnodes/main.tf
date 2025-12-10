@@ -82,6 +82,13 @@ resource "libvirt_volume" "node_vol_secondary" {
   size  = var.node_secondary_disk_size
 }
 
+resource "libvirt_volume" "juju_node_vol" {
+  name  = "juju_${count.index}.qcow2"
+  count = var.juju_nodes_count
+  pool = libvirt_pool.sunbeam.name
+  size  = var.juju_node_rootfs_size
+}
+
 
 resource "libvirt_volume" "ubuntu_noble" {
   name   = "ubuntu-noble.qcow2"
@@ -199,6 +206,48 @@ resource "libvirt_domain" "node" {
   network_interface {
     network_id     = libvirt_network.external_net.id
     mac            = format("AA:BB:CC:33:44:%02d", count.index + 10)
+  }
+  console {
+    type        = "pty"
+    target_type = "serial"
+    target_port = "0"
+  }
+
+  console {
+    type        = "pty"
+    target_type = "virtio"
+    target_port = "1"
+  }
+  graphics {
+    type        = "spice"
+    listen_type = "address"
+    autoport    = true
+  }
+}
+
+resource "libvirt_domain" "juju_node" {
+  depends_on = [
+    libvirt_domain.maas_controller,
+  ]
+  count   = var.juju_nodes_count
+  name    = "juju-${count.index}"
+  memory  = var.juju_node_mem
+  vcpu    = var.juju_node_vcpu
+  running = false
+  disk {
+    volume_id = libvirt_volume.juju_node_vol[count.index].id
+  }
+  boot_device {
+    dev = [ "network", "hd"]
+  }
+  network_interface {
+    network_id     = libvirt_network.generic_net.id
+    hostname       = "juju-${count.index}"
+    mac            = format("AA:BB:CC:55:66:%02d", count.index + 10)
+  }
+  network_interface {
+    network_id     = libvirt_network.external_net.id
+    mac            = format("AA:BB:CC:77:88:%02d", count.index + 10)
   }
   console {
     type        = "pty"

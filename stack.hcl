@@ -27,5 +27,10 @@ locals {
     maas_controller_mem  = "8192"      # 8 GB for MAAS controller
     maas_controller_vcpu = 4
 
+    # Juju nodes configuration
+    juju_nodes_count     = 1           # Number of Juju nodes (0, 1, or 3)
+    juju_node_mem        = "4096"      # 4 GB per Juju node
+    juju_node_vcpu       = 2           # 2 vCPUs per Juju node
+
   }
 }

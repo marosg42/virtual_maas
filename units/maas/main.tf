@@ -238,25 +238,29 @@ resource "maas_machine" "node" {
   pxe_mac_address = var.nodes[count.index].mac_address
 }
 
+resource "maas_machine" "juju_node" {
+  depends_on = [time_sleep.wait_60_seconds]
+  count = length(var.juju_nodes)
+  hostname = var.juju_nodes[count.index].name
+  power_type = "virsh"
+  power_parameters = jsonencode({
+    power_address = var.libvirt_uri
+    power_id      = var.juju_nodes[count.index].name
+  })
+  pxe_mac_address = var.juju_nodes[count.index].mac_address
+}
+
 # MAAS Machine Tags
 resource "maas_tag" "compute" {
   name     = "compute"
-  comment  = "Compute nodes for OpenStack"
-  machines = [
-    maas_machine.node[3].id,
-    maas_machine.node[4].id,
-    maas_machine.node[5].id
-  ]
+  comment  = "Compute nodes"
+  machines = [for node in maas_machine.node : node.id]
 }
 
 resource "maas_tag" "juju" {
   name     = "juju"
   comment  = "Juju controller nodes"
-  machines = [
-    maas_machine.node[0].id, 
-    maas_machine.node[1].id,
-    maas_machine.node[2].id
-  ]
+  machines = [for node in maas_machine.juju_node : node.id]
 }
 
 
