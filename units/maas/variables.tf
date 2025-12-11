@@ -27,6 +27,15 @@ variable "nodes" {
   }))
 }
 
+variable "juju_nodes" {
+  description = "List of Juju nodes"
+  type = list(object({
+    name        = string
+    mac_address = string
+  }))
+  default = []
+}
+
 variable "ssh_private_key_path" {
   description = "Path to the SSH private key to use in deployed nodes"
   type        = string

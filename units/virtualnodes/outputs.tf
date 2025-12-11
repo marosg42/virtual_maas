@@ -15,6 +15,17 @@ output "nodes" {
   depends_on = [libvirt_domain.node]
 }
 
+output "juju_nodes" {
+  description = "List of Juju nodes"
+  value = [
+    for node in libvirt_domain.juju_node : {
+      name        = node.name
+      mac_address = node.network_interface[0].mac
+    }
+  ]
+  depends_on = [libvirt_domain.juju_node]
+}
+
 output "maas_api_key" {
   description = "MAAS Admin API Key"
   value = data.external.remote_command.result.apikey
