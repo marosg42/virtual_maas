@@ -78,9 +78,12 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
     else
         # TODO: Add content for juju 4.x
         juju spaces -m controller --format yaml
+        juju bind -m controller controller space-generic
+        juju add-unit -m controller controller -n 2
+
     fi
 fi
-juju status
+juju controllers --refresh
 juju add-model test
 juju deploy --force --channel 16/edge  -n 3 postgresql
 sleep 60
