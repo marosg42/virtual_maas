@@ -55,6 +55,20 @@ EOF
 juju add-cloud maas_cloud mycloud.yaml --client
 juju add-credential maas_cloud -f credentials.yaml --client
 juju bootstrap --bootstrap-constraints "arch=amd64 tags=juju" --config caas-image-repo=ghcr.io/juju --config bootstrap-timeout=1800 --model-default model_defaults.yaml maas_cloud juju-controller
+
+# Get the number of juju nodes from terraform
+JUJU_NODE_COUNT=$(cd units/virtualnodes && terragrunt output -json juju_nodes | jq 'length')
+
+if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
+    if [[ "$TEST_JUJU_CHANNEL" =~ ^3 ]]; then
+        # TODO: Add content for juju 3.x
+        :
+    else
+        # TODO: Add content for juju 4.x
+        :
+    fi
+fi
+
 juju add-model test
 juju deploy --force --channel 16/edge  -n 3 postgresql
 sleep 60
