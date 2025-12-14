@@ -62,13 +62,25 @@ JUJU_NODE_COUNT=$(cd units/virtualnodes && terragrunt output -json juju_nodes | 
 if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
     if [[ "$TEST_JUJU_CHANNEL" =~ ^3 ]]; then
         # TODO: Add content for juju 3.x
-        :
+        juju enable-ha
+        max_iterations=120
+        iterations=0
+        while [[ 3 != $(juju controllers --refresh --format json|jq '.controllers[.["current-controller"]]["controller-machines"].Active') ]] ; do
+            iterations=$((iterations + 1))
+            if [ $iterations -ge $max_iterations ]; then
+                echo "Timeout reached after $max_iterations attempts (30 minutes). Juju HA not ready."
+                exit 1
+            fi
+            echo "Waiting for Juju HA"
+            sleep 15
+        done
+        echo "Juju HA reached"
     else
         # TODO: Add content for juju 4.x
-        :
+        juju spaces -m controller --format yaml
     fi
 fi
-
+juju status
 juju add-model test
 juju deploy --force --channel 16/edge  -n 3 postgresql
 sleep 60
