@@ -78,6 +78,8 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
     else
         # TODO: Add content for juju 4.x
         juju spaces -m controller --format yaml
+        # wait a while otherwise juju says controller is not on space-generic
+        sleep 60
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
 
