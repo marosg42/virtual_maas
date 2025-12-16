@@ -79,7 +79,7 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         sleep 10
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
-
+        echo "Here we should wait until juju is in HA mode. But there is no way yet to test it. Hey-ho."
     fi
 fi
 juju controllers --refresh
