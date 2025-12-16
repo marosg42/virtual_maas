@@ -1,6 +1,11 @@
 #!/bin/bash -eux
 
-export COLUMNS=256
+# Get the number of juju nodes from terraform
+JUJU_NODE_COUNT=$(cd units/virtualnodes && terragrunt output -json juju_nodes | jq 'length')
+if [[ $JUJU_NODE_COUNT -eq 0 ]]; then
+    echo "No Juju units defined"
+    exit 1
+fi
 
 
 TEST_JUJU_CHANNEL=${TEST_JUJU_CHANNEL:-3.6}
@@ -18,10 +23,6 @@ fi
 if [[ ! -f "$HOME/.ssh/passwordless" ]]; then
     ssh-keygen -b 2048 -t rsa -f $HOME/.ssh/passwordless -q -N ""
 fi
-
-function run_snap_daemon {
-    sg snap_daemon -c "$*"
-}
 
 sudo snap install --channel ${TEST_JUJU_CHANNEL} juju
 cat <<EOF > mycloud.yaml
@@ -51,13 +52,9 @@ juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost
 logging-config: <root>=DEBUG
 EOF
 
-
 juju add-cloud maas_cloud mycloud.yaml --client
 juju add-credential maas_cloud -f credentials.yaml --client
 juju bootstrap --bootstrap-constraints "arch=amd64 tags=juju" --config caas-image-repo=ghcr.io/juju --config bootstrap-timeout=1800 --model-default model_defaults.yaml maas_cloud juju-controller
-
-# Get the number of juju nodes from terraform
-JUJU_NODE_COUNT=$(cd units/virtualnodes && terragrunt output -json juju_nodes | jq 'length')
 
 if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
     if [[ "$TEST_JUJU_CHANNEL" =~ ^3 ]]; then
@@ -79,7 +76,7 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         # TODO: Add content for juju 4.x
         juju spaces -m controller --format yaml
         # wait a while otherwise juju says controller is not on space-generic
-        sleep 60
+        sleep 10
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
 
