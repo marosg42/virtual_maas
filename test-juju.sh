@@ -79,7 +79,17 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         sleep 10
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
-        echo "Here we should wait until juju is in HA mode. But there is no way yet to test it. Hey-ho."
+        while true; do
+            # Get count of machines with controller-member-status: has-vote
+            count=$(juju status -m controller --format json | \
+                jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length')
+            echo "Current has-vote count: $count"
+            if [[ "$count" -eq 3 ]]; then
+                echo "All 3 controllers have has-vote status"
+                break
+            fi
+            sleep 10
+        done
     fi
 fi
 juju controllers --refresh
