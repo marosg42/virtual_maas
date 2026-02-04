@@ -79,11 +79,18 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         sleep 10
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
+        max_iterations=180
+        iterations=0
         while true; do
+            iterations=$((iterations + 1))
+            if [ $iterations -ge $max_iterations ]; then
+                echo "Timeout reached after $max_iterations attempts (30 minutes). Juju HA not ready."
+                exit 1
+            fi
             # Get count of machines with controller-member-status: has-vote
             count=$(juju status -m controller --format json | \
                 jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length')
-            echo "Current has-vote count: $count"
+            echo "Current has-vote count: $count (iteration $iterations/$max_iterations)"
             if [[ "$count" -eq 3 ]]; then
                 echo "All 3 controllers have has-vote status"
                 break
