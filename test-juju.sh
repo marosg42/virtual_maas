@@ -65,7 +65,7 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         while [[ 3 != $(juju controllers --refresh --format json|jq '.controllers[.["current-controller"]]["controller-machines"].Active') ]] ; do
             iterations=$((iterations + 1))
             if [ $iterations -ge $max_iterations ]; then
-                echo "Timeout reached after $max_iterations attempts (30 minutes). Juju HA not ready."
+                echo "Timeout reached after 30 minutes ($max_iterations iterations × 15 seconds). Juju HA not ready."
                 exit 1
             fi
             echo "Waiting for Juju HA"
@@ -84,7 +84,7 @@ if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
         while true; do
             iterations=$((iterations + 1))
             if [ $iterations -ge $max_iterations ]; then
-                echo "Timeout reached after $max_iterations attempts (30 minutes). Juju HA not ready."
+                echo "Timeout reached after 30 minutes ($max_iterations iterations × 10 seconds). Juju HA not ready."
                 exit 1
             fi
             # Get count of machines with controller-member-status: has-vote
