@@ -11,12 +11,12 @@ fi
 TEST_JUJU_CHANNEL=${TEST_JUJU_CHANNEL:-3.6}
 
 if [[ -z "$TEST_MAAS_API_KEY" ]];then
-    echo "Error: Please define the TEST_MAAS_API_KEY environment variable" >&1
+    echo "Error: Please define the TEST_MAAS_API_KEY environment variable" >&2
     exit 1
 fi
 
 if [[ -z "$TEST_MAAS_URL" ]];then
-    echo "Error: Please define the TEST_MAAS_URL environment variable" >&1
+    echo "Error: Please define the TEST_MAAS_URL environment variable" >&2
     exit 1
 fi
 
