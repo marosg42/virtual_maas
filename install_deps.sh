@@ -1,12 +1,12 @@
 #!/bin/bash -x
 
-if [ "x$(which terragrunt)" != "x0" ]; then
+if ! command -v terragrunt &>/dev/null; then
     sudo wget -O /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.87.1/terragrunt_linux_amd64
     sudo chmod +x /usr/local/bin/terragrunt
 fi
 
 # install opentofu
-if [ "x$(which tofu)" != "x0" ]; then
+if ! command -v tofu &>/dev/null; then
     sudo apt-get update
     sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
     sudo install -m 0755 -d /etc/apt/keyrings
@@ -24,7 +24,7 @@ deb-src [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-rep
 fi
 
 # install terraform
-if [ "x$(which tofu)" != "x0" ]; then
+if ! command -v terraform &>/dev/null; then
     sudo apt-get update -q
     sudo apt-get install -yq gnupg software-properties-common
     wget -O- https://apt.releases.hashicorp.com/gpg | \
@@ -36,7 +36,7 @@ if [ "x$(which tofu)" != "x0" ]; then
     sudo apt-get install -yq terraform
 fi
 
-if [ "x$(which virsh)" != "x0" ]; then
+if ! command -v virsh &>/dev/null; then
     sudo apt-get install -y -qq \
         sosreport \
         libvirt-daemon \
