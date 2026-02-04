@@ -52,51 +52,56 @@ juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost
 logging-config: <root>=DEBUG
 EOF
 
+wait_for() {
+    local description="$1"
+    shift
+    local max_wait=1800
+    local sleep_interval=10
+    local elapsed=0
+
+    while ! "$@"; do
+        if [[ $elapsed -ge $max_wait ]]; then
+            echo "Timeout reached after ${max_wait}s. ${description} not ready."
+            exit 1
+        fi
+        echo "Waiting for ${description}... (${elapsed}s/${max_wait}s)"
+        sleep $sleep_interval
+        elapsed=$((elapsed + sleep_interval))
+    done
+    echo "${description} reached"
+}
+
+check_juju3_ha() {
+    local active
+    active=$(juju controllers --refresh --format json | \
+        jq '.controllers[.["current-controller"]]["controller-machines"].Active')
+    echo "Active controller machines: $active"
+    [[ "$active" == "3" ]]
+}
+
+check_juju4_ha() {
+    local count
+    count=$(juju status -m controller --format json | \
+        jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length')
+    echo "Current has-vote count: $count"
+    [[ "$count" -eq 3 ]]
+}
+
 juju add-cloud maas_cloud mycloud.yaml --client
 juju add-credential maas_cloud -f credentials.yaml --client
 juju bootstrap --bootstrap-constraints "arch=amd64 tags=juju" --config caas-image-repo=ghcr.io/juju --config bootstrap-timeout=1800 --model-default model_defaults.yaml maas_cloud juju-controller
 
 if [[ $JUJU_NODE_COUNT -eq 3 ]]; then
     if [[ "$TEST_JUJU_CHANNEL" =~ ^3 ]]; then
-        # TODO: Add content for juju 3.x
         juju enable-ha
-        max_iterations=120
-        iterations=0
-        while [[ 3 != $(juju controllers --refresh --format json|jq '.controllers[.["current-controller"]]["controller-machines"].Active') ]] ; do
-            iterations=$((iterations + 1))
-            if [ $iterations -ge $max_iterations ]; then
-                echo "Timeout reached after $max_iterations attempts (30 minutes). Juju HA not ready."
-                exit 1
-            fi
-            echo "Waiting for Juju HA"
-            sleep 15
-        done
-        echo "Juju HA reached"
+        wait_for "Juju HA" check_juju3_ha
     else
-        # TODO: Add content for juju 4.x
         juju spaces -m controller --format yaml
         # wait a while otherwise juju says controller is not on space-generic
         sleep 10
         juju bind -m controller controller space-generic
         juju add-unit -m controller controller -n 2
-        max_iterations=120
-        iterations=0
-        while true; do
-            iterations=$((iterations + 1))
-            if [ $iterations -ge $max_iterations ]; then
-                echo "Timeout reached after $max_iterations attempts (20 minutes). Juju HA not ready."
-                exit 1
-            fi
-            # Get count of machines with controller-member-status: has-vote
-            count=$(juju status -m controller --format json | \
-                jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length')
-            echo "Current has-vote count: $count"
-            if [[ "$count" -eq 3 ]]; then
-                echo "All 3 controllers have has-vote status"
-                break
-            fi
-            sleep 10
-        done
+        wait_for "Juju HA" check_juju4_ha
     fi
 fi
 juju controllers --refresh
