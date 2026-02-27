@@ -13,9 +13,8 @@ terraform {
 }
 
 locals {
-  maas_url     = "http://${var.maas_controller_ip_address}:5240/MAAS"
-  juju_major   = tonumber(regex("^(\\d+)", var.juju_channel)[0])
-  ssh_key_path = pathexpand(var.ssh_private_key_path)
+  maas_url   = "http://${var.maas_controller_ip_address}:5240/MAAS"
+  juju_major = tonumber(regex("^(\\d+)", var.juju_channel)[0])
 }
 
 resource "null_resource" "juju_install" {
@@ -30,33 +29,37 @@ resource "null_resource" "juju_bootstrap" {
   provisioner "local-exec" {
     command = <<-EOT
       set -e
-      test -f ${local.ssh_key_path} || ssh-keygen -b 2048 -t rsa -f ${local.ssh_key_path} -q -N ""
 
-      cat > /tmp/juju_maas_cloud.yaml << 'EOF'
-clouds:
-    maas_cloud:
-        type: maas
-        auth-types: [oauth1]
-        endpoint: ${local.maas_url}
-        regions:
-            default:
-                endpoint: ${local.maas_url}
-EOF
+      # Expand ~ via shell rather than relying on Terraform's pathexpand
+      SSH_KEY=$(eval echo "${var.ssh_private_key_path}")
+      test -f "$SSH_KEY" || ssh-keygen -b 2048 -t rsa -f "$SSH_KEY" -q -N ""
 
-      cat > /tmp/juju_maas_credentials.yaml << 'EOF'
-credentials:
-    maas_cloud:
-        maas_cloud_credentials:
-            auth-type: oauth1
-            maas-oauth: ${var.maas_api_key}
-EOF
+      # Write config files with printf to avoid nested heredoc issues
+      printf '%s\n' \
+        'clouds:' \
+        '    maas_cloud:' \
+        '        type: maas' \
+        '        auth-types: [oauth1]' \
+        "        endpoint: ${local.maas_url}" \
+        '        regions:' \
+        '            default:' \
+        "                endpoint: ${local.maas_url}" \
+        > /tmp/juju_maas_cloud.yaml
+
+      printf '%s\n' \
+        'credentials:' \
+        '    maas_cloud:' \
+        '        maas_cloud_credentials:' \
+        '            auth-type: oauth1' \
+        "            maas-oauth: ${var.maas_api_key}" \
+        > /tmp/juju_maas_credentials.yaml
       chmod 600 /tmp/juju_maas_credentials.yaml
 
-      cat > /tmp/juju_model_defaults.yaml << 'EOF'
-cloudinit-userdata: "write_files:\n  - content: |\n      kernel.keys.maxkeys = 2000\n    owner: \"root:root\"\n    path: /etc/sysctl.d/10-maxkeys.conf\n    permissions: \"0644\"\npostruncmd:\n  - sysctl --system\n"
-juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost
-logging-config: <root>=DEBUG
-EOF
+      printf '%s\n' \
+        'cloudinit-userdata: "write_files:\n  - content: |\n      kernel.keys.maxkeys = 2000\n    owner: \"root:root\"\n    path: /etc/sysctl.d/10-maxkeys.conf\n    permissions: \"0644\"\npostruncmd:\n  - sysctl --system\n"' \
+        'juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost' \
+        'logging-config: <root>=DEBUG' \
+        > /tmp/juju_model_defaults.yaml
 
       juju add-cloud maas_cloud /tmp/juju_maas_cloud.yaml --client
       juju add-credential maas_cloud -f /tmp/juju_maas_credentials.yaml --client
