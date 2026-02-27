@@ -5,10 +5,6 @@ terraform {
       source  = "hashicorp/external"
       version = "2.3.5"
     }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.3"
-    }
     null = {
       source  = "hashicorp/null"
       version = "3.2.4"
@@ -17,44 +13,9 @@ terraform {
 }
 
 locals {
-  maas_url      = "http://${var.maas_controller_ip_address}:5240/MAAS"
-  juju_major    = tonumber(regex("^(\\d+)", var.juju_channel)[0])
-  ssh_key_path  = pathexpand(var.ssh_private_key_path)
-}
-
-resource "local_file" "maas_cloud_yaml" {
-  filename = "/tmp/juju_maas_cloud.yaml"
-  content  = <<-YAML
-    clouds:
-        maas_cloud:
-            type: maas
-            auth-types: [oauth1]
-            endpoint: ${local.maas_url}
-            regions:
-                default:
-                    endpoint: ${local.maas_url}
-    YAML
-}
-
-resource "local_sensitive_file" "maas_credentials_yaml" {
-  filename        = "/tmp/juju_maas_credentials.yaml"
-  file_permission = "0600"
-  content         = <<-YAML
-    credentials:
-        maas_cloud:
-            maas_cloud_credentials:
-                auth-type: oauth1
-                maas-oauth: ${var.maas_api_key}
-    YAML
-}
-
-resource "local_file" "model_defaults_yaml" {
-  filename = "/tmp/juju_model_defaults.yaml"
-  content  = <<-YAML
-    cloudinit-userdata: "write_files:\n  - content: |\n      kernel.keys.maxkeys = 2000\n    owner: \"root:root\"\n    path: /etc/sysctl.d/10-maxkeys.conf\n    permissions: \"0644\"\npostruncmd:\n  - sysctl --system\n"
-    juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost
-    logging-config: <root>=DEBUG
-    YAML
+  maas_url     = "http://${var.maas_controller_ip_address}:5240/MAAS"
+  juju_major   = tonumber(regex("^(\\d+)", var.juju_channel)[0])
+  ssh_key_path = pathexpand(var.ssh_private_key_path)
 }
 
 resource "null_resource" "juju_install" {
@@ -64,17 +25,39 @@ resource "null_resource" "juju_install" {
 }
 
 resource "null_resource" "juju_bootstrap" {
-  depends_on = [
-    null_resource.juju_install,
-    local_file.maas_cloud_yaml,
-    local_sensitive_file.maas_credentials_yaml,
-    local_file.model_defaults_yaml,
-  ]
+  depends_on = [null_resource.juju_install]
 
   provisioner "local-exec" {
     command = <<-EOT
       set -e
       test -f ${local.ssh_key_path} || ssh-keygen -b 2048 -t rsa -f ${local.ssh_key_path} -q -N ""
+
+      cat > /tmp/juju_maas_cloud.yaml << 'EOF'
+clouds:
+    maas_cloud:
+        type: maas
+        auth-types: [oauth1]
+        endpoint: ${local.maas_url}
+        regions:
+            default:
+                endpoint: ${local.maas_url}
+EOF
+
+      cat > /tmp/juju_maas_credentials.yaml << 'EOF'
+credentials:
+    maas_cloud:
+        maas_cloud_credentials:
+            auth-type: oauth1
+            maas-oauth: ${var.maas_api_key}
+EOF
+      chmod 600 /tmp/juju_maas_credentials.yaml
+
+      cat > /tmp/juju_model_defaults.yaml << 'EOF'
+cloudinit-userdata: "write_files:\n  - content: |\n      kernel.keys.maxkeys = 2000\n    owner: \"root:root\"\n    path: /etc/sysctl.d/10-maxkeys.conf\n    permissions: \"0644\"\npostruncmd:\n  - sysctl --system\n"
+juju-no-proxy: 10.0.0.0/8,192.168.0.0/16,172.16.0.0/12,127.0.0.1,localhost
+logging-config: <root>=DEBUG
+EOF
+
       juju add-cloud maas_cloud /tmp/juju_maas_cloud.yaml --client
       juju add-credential maas_cloud -f /tmp/juju_maas_credentials.yaml --client
       juju bootstrap \
