@@ -31,7 +31,8 @@ resource "null_resource" "juju_bootstrap" {
       MAAS_URL     = local.maas_url
       MAAS_API_KEY = var.maas_api_key
     }
-    command = <<-EOT
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
       set -e
 
       SSH_KEY=$(eval echo "${var.ssh_private_key_path}")
@@ -91,9 +92,8 @@ resource "null_resource" "juju_ha" {
   depends_on = [null_resource.juju_bootstrap]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      set -e
-      MAX_WAIT=1800
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
       SLEEP=10
       ELAPSED=0
       if [[ ${local.juju_major} -eq 3 ]]; then
