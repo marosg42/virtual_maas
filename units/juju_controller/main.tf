@@ -75,8 +75,10 @@ with open(f"{home}/juju_model_defaults.yaml", "w") as f:
     )
 PYEOF
 
-      juju add-cloud maas_cloud ~/juju_maas_cloud.yaml --client
-      juju add-credential maas_cloud -f ~/juju_maas_credentials.yaml --client
+      juju add-cloud maas_cloud ~/juju_maas_cloud.yaml --client 2>/dev/null || \
+        juju update-cloud maas_cloud --client -f ~/juju_maas_cloud.yaml
+      juju add-credential maas_cloud -f ~/juju_maas_credentials.yaml --client 2>/dev/null || true
+      juju controllers --format json 2>/dev/null | jq -e '.controllers["juju-controller"]' > /dev/null 2>&1 || \
       juju bootstrap \
         --bootstrap-constraints "arch=amd64 tags=juju" \
         --config caas-image-repo=ghcr.io/juju \
@@ -94,22 +96,28 @@ resource "null_resource" "juju_ha" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOT
-      SLEEP=10
-      ELAPSED=0
+      set -e
+      DEADLINE=$(( $(date +%s) + 1800 ))
       if [[ ${local.juju_major} -eq 3 ]]; then
+        # Skip if already HA
+        [[ $(juju controllers --refresh --format json | jq '.controllers[.["current-controller"]]["controller-machines"].Active') == "3" ]] && exit 0
         juju enable-ha
         until [[ $(juju controllers --refresh --format json | jq '.controllers[.["current-controller"]]["controller-machines"].Active') == "3" ]]; do
-          [[ $ELAPSED -ge $MAX_WAIT ]] && echo "Timeout waiting for Juju HA" && exit 1
-          sleep $SLEEP; ELAPSED=$((ELAPSED + SLEEP))
+          [[ $(date +%s) -ge $DEADLINE ]] && echo "Timeout waiting for Juju HA" && exit 1
+          sleep 10
         done
       else
+        # Skip if already HA
+        [[ $(juju status -m controller --format json | jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length') -eq 3 ]] && exit 0
         juju spaces -m controller --format yaml
         sleep 10
-        juju bind -m controller controller space-generic
-        juju add-unit -m controller controller -n 2
+        juju bind -m controller controller space-generic || true
+        # Only add units if fewer than 3 exist
+        UNIT_COUNT=$(juju status -m controller --format json | jq '[.applications.controller.units | keys[]] | length')
+        [[ $UNIT_COUNT -lt 3 ]] && juju add-unit -m controller controller -n $(( 3 - $UNIT_COUNT ))
         until [[ $(juju status -m controller --format json | jq '[.machines[] | select(."controller-member-status" == "has-vote")] | length') -eq 3 ]]; do
-          [[ $ELAPSED -ge $MAX_WAIT ]] && echo "Timeout waiting for Juju HA" && exit 1
-          sleep $SLEEP; ELAPSED=$((ELAPSED + SLEEP))
+          [[ $(date +%s) -ge $DEADLINE ]] && echo "Timeout waiting for Juju HA" && exit 1
+          sleep 10
         done
       fi
     EOT
