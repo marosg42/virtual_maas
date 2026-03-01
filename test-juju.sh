@@ -7,12 +7,16 @@ if [[ $JUJU_NODE_COUNT -eq 0 ]]; then
     exit 1
 fi
 
-
-# Controller bootstrap and HA setup are handled by the juju_controller Terraform unit.
-
 juju controllers --refresh
 juju add-model test
 juju deploy --force --channel 16/edge  -n 3 postgresql
+juju deploy -n 3 ubuntu
 sleep 600
 juju status
+juju status -m controller
+for i in {1..20} ; do for j in 0 1 2; do juju exec --unit ubuntu/$j date ; done ; done
+juju status
+juju status -m controller
 time juju destroy-model --noprompt test
+juju status
+juju status -m controller
