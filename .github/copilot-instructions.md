@@ -78,6 +78,6 @@ To change VM sizes or node counts, edit `stack.hcl`.
 
 The generic subnet DHCP range is `.200–.254`; reserved ranges cover `.1–.5`, `.10–.29` (internal API), `.30–.49` (public API).
 
-## CI (Testflinger)
+## Remote deployment (Testflinger)
 
-`local-testflinger.sh` packages the repo as `repository.tar.gz`, injects variables into `testflinger/job.yaml.tpl` via `envsubst`, and submits the job. The job provisions a bare-metal host, copies the tarball, and runs `install_deps.sh` + `deploy.sh` remotely.
+Testflinger is a way to deploy on a remote bare-metal server without manual setup. `local-testflinger.sh` packages the repo as `repository.tar.gz`, injects variables into `testflinger/job.yaml.tpl` via `envsubst`, and submits the job. The job provisions a bare-metal host, copies the tarball, and runs `install_deps.sh` + `deploy.sh` remotely.
