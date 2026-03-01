@@ -13,5 +13,6 @@ fi
 juju controllers --refresh
 juju add-model test
 juju deploy --force --channel 16/edge  -n 3 postgresql
-sleep 60
+sleep 600
 juju status
+time juju destroy-model --noprompt test
