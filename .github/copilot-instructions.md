@@ -56,7 +56,7 @@ To change VM sizes or node counts, edit `stack.hcl`.
 
 - **`juju_nodes_count` must be 0, 1, or 3** — enforced by a Terraform `validation` block in `units/virtualnodes/variables.tf`.
 - **`juju_channel` controls the Juju snap** (e.g. `4.0/stable`, `3/stable`) — set in `stack.hcl`. The major version is derived from it at plan time to select the correct HA path (`juju enable-ha` for v3, `juju add-unit -n 2` for v4).
-- **SSH key at `~/.ssh/passwordless`** (no passphrase) — required for provisioner SSH connections to the MAAS controller. Created automatically by `test-juju.sh` if missing.
+- **SSH key at `~/.ssh/passwordless`** (no passphrase) — required for provisioner SSH connections to the MAAS controller. Created automatically by the `juju_controller` bootstrap provisioner if missing.
 - **MAC addresses are hardcoded** per VM type in `units/virtualnodes/main.tf`:
   - Worker nodes: `AA:BB:CC:11:22:<index+10>`
   - Juju nodes: `AA:BB:CC:55:66:<index+10>`
@@ -66,7 +66,7 @@ To change VM sizes or node counts, edit `stack.hcl`.
 - **Mock outputs** in `terragrunt.hcl` dependency blocks allow `terragrunt plan`/`validate` on a single unit without running its dependencies first.
 - **Disk sizes** are specified in bytes in variables (e.g., `21474836480` = 20 GiB).
 - **`local-exec` provisioners must specify `interpreter = ["/bin/bash", "-c"]`** — OpenTofu defaults to `/bin/sh`, which doesn't support `[[`, process substitution, or other bash-isms used in this repo.
-- **The Juju snap cannot read `/tmp`** due to snap confinement — config files written for `juju add-cloud`/`add-credential` must be placed in `$HOME`.
+- **The Juju snap cannot read `/tmp`** due to snap confinement — config files written for `juju add-cloud`/`add-credential` must be placed in `$HOME`. The `juju_controller` unit delegates this to `units/juju_controller/write_juju_config.py`, which reads `MAAS_URL` and `MAAS_API_KEY` from the provisioner `environment` block and writes the three YAML files (`juju_maas_cloud.yaml`, `juju_maas_credentials.yaml`, `juju_model_defaults.yaml`) to `~`.
 
 ## Network Layout
 
