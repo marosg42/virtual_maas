@@ -2,7 +2,19 @@
 
 Provisions a virtual MAAS (Metal as a Service) environment on a Linux KVM hypervisor using **Terragrunt** + **OpenTofu**. Spins up a MAAS controller VM, worker nodes, and optional Juju controller nodes, registers them all with MAAS, then bootstraps a Juju controller on top.
 
-## Prerequisites
+## Remote deployment (Testflinger)
+
+The intended way to run this is via Testflinger, which provisions a remote bare-metal server and runs the deployment on it automatically — no manual server setup required.
+
+```bash
+./local-testflinger.sh lp:username   # or gh:username
+```
+
+Packages the repo as `repository.tar.gz`, submits a Testflinger job that provisions a bare-metal host, copies the tarball, and runs `install_deps.sh` + `deploy.sh`.
+
+## Running locally
+
+If you already have a KVM host available, you can run the deployment directly on it.
 
 Run `./install_deps.sh` once on the KVM host to install:
 
@@ -89,12 +101,4 @@ All stack-wide variables live in `stack.hcl` at the repo root. Edit this file to
 
 DHCP range on `generic_net`: `.200–.254`. Reserved: `.1–.5`, `.10–.29` (internal API), `.30–.49` (public API).
 
-## Remote deployment (Testflinger)
-
-Testflinger is a way to deploy on a remote bare-metal server without manual setup.
-
-```bash
-./local-testflinger.sh lp:username   # or gh:username
-```
-
-Packages the repo as `repository.tar.gz`, submits a Testflinger job that provisions a bare-metal host, copies the tarball, and runs `install_deps.sh` + `deploy.sh`.
+## Prerequisites
