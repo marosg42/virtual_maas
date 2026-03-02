@@ -19,6 +19,11 @@ variable "juju_nodes_count" {
   description = "Number of Juju nodes (0, 1, or 3)"
   type        = number
   default     = 0
+
+  validation {
+    condition     = contains([0, 1, 3], var.juju_nodes_count)
+    error_message = "juju_nodes_count must be one of 0, 1, or 3."
+  }
 }
 
 variable "ssh_private_key_path" {
