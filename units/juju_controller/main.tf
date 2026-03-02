@@ -19,7 +19,7 @@ locals {
 
 resource "null_resource" "juju_install" {
   provisioner "local-exec" {
-    command = "sudo snap install --channel ${var.juju_channel} juju || sudo snap refresh --channel ${var.juju_channel} juju"
+    command = "sudo snap install --channel ${var.juju_channel} --classic juju || sudo snap refresh --channel ${var.juju_channel} --classic juju"
   }
 }
 
