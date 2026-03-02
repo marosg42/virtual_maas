@@ -13,6 +13,11 @@ locals {
       source = "./maas"
       dependencies = ["virtualnodes"]
     }
+
+    juju_controller = {
+      source       = "./juju_controller"
+      dependencies = ["maas"]
+    }
   }
 
   # Stack-wide variables
@@ -26,6 +31,8 @@ locals {
     node_vcpu            = 4           # 4 vCPUs per node
     maas_controller_mem  = "8192"      # 8 GB for MAAS controller
     maas_controller_vcpu = 4
+
+    juju_channel         = "4.0/stable" # Juju snap channel (e.g. 3/stable, 4.0/candidate)
 
     # Juju nodes configuration
     juju_nodes_count     = 3           # Number of Juju nodes (0, 1, or 3)

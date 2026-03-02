@@ -6,9 +6,4 @@ pushd $SCRIPT_DIR
 
 terragrunt --non-interactive run-all apply || exit 1
 
-MAAS_IP=$(cd units/virtualnodes && terragrunt output -raw maas_controller_ip_address)
-export TEST_MAAS_API_KEY="$(cat ~/api.key)"
-export TEST_MAAS_URL="http://${MAAS_IP}:5240/MAAS"
-
-export TEST_JUJU_CHANNEL=4.0/stable
 ./test-juju.sh
