@@ -35,7 +35,7 @@ resource "null_resource" "juju_bootstrap" {
     command     = <<-EOT
       set -e
 
-      SSH_KEY=$(eval echo "${var.ssh_private_key_path}")
+      SSH_KEY="${pathexpand(var.ssh_private_key_path)}"
       test -f "$SSH_KEY" || ssh-keygen -b 2048 -t rsa -f "$SSH_KEY" -q -N ""
 
       python3 ${path.module}/write_juju_config.py
