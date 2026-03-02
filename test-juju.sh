@@ -17,6 +17,6 @@ juju status -m controller
 for i in {1..20} ; do for j in 0 1 2; do juju exec --unit ubuntu/$j date ; done ; done
 juju status
 juju status -m controller
-time juju destroy-model --noprompt test
+time juju destroy-model --no-prompt test
 juju status
 juju status -m controller
