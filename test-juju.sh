@@ -7,10 +7,14 @@ if [[ $JUJU_NODE_COUNT -eq 0 ]]; then
     exit 1
 fi
 
-juju controllers --refresh
 juju add-model test
-juju deploy --force --channel 16/edge  -n 3 postgresql
-juju deploy -n 3 ubuntu
+
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N '' > /dev/null 2>&1
+juju add-ssh-key "$(cat ~/.ssh/id_ed25519.pub)"
+juju model-config -m test default-space=space-generic || true
+
+juju deploy postgresql -n 3 --channel 16/edge --force
+
 echo "sleep for 60 seconds"
 sleep 60
 juju status
@@ -19,9 +23,5 @@ echo "sleep for 20 minutes"
 sleep 1200
 juju status
 juju status -m controller
-for i in {1..20} ; do for j in 0 1 2; do juju exec --unit ubuntu/$j date ; done ; done
-juju status
-juju status -m controller
+for i in {1..20} ; do for j in 0 1 2; do juju exec --unit postgresql/$j date ; done ; done
 time juju destroy-model --no-prompt test
-juju status
-juju status -m controller
